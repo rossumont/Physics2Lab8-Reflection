@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reflection and Refraction</title>
+<style>
+:root{
+  --bg:#0B1A2B; --ink:#F2EEE3; --dim:#8A97A8; --line:rgba(242,238,227,.14);
+  --green:#7FD4A8; --amber:#E8B23A; --panel:rgba(255,255,255,.035);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;overflow:hidden}
+body{background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:32px 32px;background-color:var(--bg)}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(11,26,43,.85));pointer-events:none}
+#app{position:relative;height:100vh;height:100dvh;display:flex;flex-direction:column;padding:10px 14px 0;gap:8px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+h1{font-size:clamp(17px,2.4vw,24px);font-weight:800;letter-spacing:.2px}
+.sub{color:var(--dim);font-size:13px;margin-top:2px}
+.hbtns{display:flex;gap:6px;flex-shrink:0}
+.obtn{background:transparent;border:1px solid rgba(242,238,227,.4);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:13px;cursor:pointer;font-family:inherit}
+.obtn:hover{border-color:var(--green);color:var(--green)}
+.obtn.on{border-color:var(--amber);color:var(--amber)}
+#chips{display:flex;flex-wrap:wrap;gap:5px 14px}
+.cgrp{display:flex;gap:4px;align-items:center;white-space:nowrap}
+.crow{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:2px;scrollbar-width:none;align-items:center}
+.crow::-webkit-scrollbar{display:none}
+.glab{color:var(--dim);font-size:10px;font-family:var(--mono);margin-right:2px;text-transform:uppercase}
+.gap{width:10px;flex-shrink:0}
+.chip{background:var(--panel);border:1px solid rgba(242,238,227,.18);color:var(--ink);border-radius:999px;padding:3px 9px;font-size:12px;font-family:var(--mono);cursor:pointer;flex-shrink:0;user-select:none;-webkit-user-select:none}
+.chip.sel{border-color:var(--green);color:var(--green);box-shadow:0 0 0 1px var(--green) inset;background:rgba(127,212,168,.08)}
+.chip.selA{border-color:var(--amber);color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+.chip.step{min-width:38px;text-align:center}
+#stage{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:42px}
+.view{position:relative;flex:1;border:1px solid rgba(242,238,227,.16);border-radius:10px;overflow:hidden;background:rgba(5,12,20,.55);touch-action:none;cursor:crosshair}
+canvas{display:block;width:100%;height:100%}
+.tag{position:absolute;top:6px;left:9px;font-family:var(--mono);font-size:11px;color:var(--dim);pointer-events:none}
+#credit{position:fixed;left:0;right:0;bottom:5px;text-align:center;font-size:clamp(10px,2.7vw,11px);line-height:1.35;color:var(--dim);padding:0 8px}
+#credit div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#modal{position:fixed;inset:0;background:rgba(3,8,14,.75);display:none;align-items:center;justify-content:center;z-index:20;padding:14px}
+#modal.show{display:flex}
+.card{background:#0F2236;border:1px solid rgba(242,238,227,.25);border-radius:14px;padding:18px;width:min(520px,100%);max-height:90vh;overflow:auto}
+.card h2{font-size:17px;margin-bottom:10px}
+.card h3{font-size:13px;color:var(--amber);margin:14px 0 6px;font-family:var(--mono);text-transform:uppercase}
+.card input[type=password],.card input[type=text],.card input[type=email],.card input[type=number]{width:100%;background:#0B1A2B;border:1px solid rgba(242,238,227,.3);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:14px;font-family:var(--mono);margin:4px 0}
+.nrow{display:flex;gap:8px}.nrow label{flex:1;font-size:13px;font-family:var(--mono)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0}
+.row label{font-size:14px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.msg{font-size:13px;margin-top:6px;min-height:16px}
+.ok{color:var(--green)} .bad{color:#ff8a7a}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+td,th{border-bottom:1px solid rgba(242,238,227,.12);padding:4px 6px;text-align:left}
+th{color:var(--dim);font-weight:500}
+.close{float:right}
+.note{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.5}
+@media (max-width:600px){#app{padding:8px 8px 0}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div><h1 data-t="title"></h1></div>
+    <div class="hbtns"><button class="obtn" id="langBtn"></button><button class="obtn" id="teachBtn" data-t="teacher"></button></div>
+  </header>
+  <div id="chips"></div>
+  <div id="stage"><div class="view" id="wrap"><canvas id="cv"></canvas><span class="tag" data-t="view"></span></div></div>
+</div>
+<div id="credit"></div>
+<div id="modal"><div class="card" id="card"></div></div>
+
+<script>
+const T={
+ en:{title:"Reflection and Refraction",subtitle:"Snell's law — find the refractive index of the block",teacher:"Teacher",
+  view:"TOP VIEW — OPTICAL PROTRACTOR · drag the light box",part:"Part",view2:"TOP VIEW — OPTICAL DISC · drag to turn the disc",p1:"1 Refraction",p2:"2 Metal surface",surf:"Surface",mirs:["Flat","Concave","Convex"],pos:"Position",
+  mkT:"Answer key (metal surface)",thn:"θ to normal",rrd:"reflected ray reading",nrm:"normal through C",f4:"Curved surface: normal = line from C through the hit point",dir:"Direction",ab:"Air → Block",ba:"Block → Air",blk:"Material",mats:["Glass","Acrylic","Water","Diamond"],unk:"Hide material names (A, B, C, D)",ang:"Angle",zoom:"Zoom",
+  hint:"drag the light box",
+  credit:["Asst.Prof.Dr. Rossumont Jaryabhand · No Right Reserved","Rajamangala University of Technology Tawan-ok, Uthenthawai Campus"],
+  pwTitle:"Teacher access",pwPh:"Password",enter:"Enter",wrong:"Wrong password",
+  tpTitle:"Teacher panel",ans:"Show answers on screen",nT:"Refractive index of each material",
+  keyT:"Answer key (current material & direction)",crit:"Critical angle",tir:"total internal reflection",
+  th1:"θ incident",th2:"θ refracted",thr:"θ reflected",
+  fT:"Formulas",f1:"Reflection: θ reflected = θ incident",f2:"Snell: n₁ sinθ₁ = n₂ sinθ₂ (air n = 1.00)",f3:"Critical angle: sinθc = 1/n",
+  link:"Student link",gen:"Create & copy link",copied:"Copied ✓ — send this link to students",
+  chg:"Change password",email:"Email",adm:"Account password",newpw:"New password",save:"Save",
+  saved:"Saved ✓ (this browser)",noauth:"Email or account password incorrect",close:"Close"},
+ th:{title:"การสะท้อนและการหักเหของแสง",subtitle:"กฎของสเนลล์ — หาดัชนีหักเหของตัวกลาง",teacher:"ครู",
+  view:"มุมมองด้านบน — แผ่นวัดมุม · ลากกล่องแสงได้",part:"ส่วน",view2:"มุมมองด้านบน — จานหมุน · ลากเพื่อหมุนจาน",p1:"1 การหักเห",p2:"2 สะท้อนผิวโลหะ",surf:"ผิว",mirs:["แผ่นเรียบ","โค้งด้านใน","โค้งด้านนอก"],pos:"ตำแหน่ง",
+  mkT:"เฉลย (ผิวโลหะ)",thn:"มุมกับเส้นปกติ",rrd:"อ่านแสงสะท้อนบนแผ่นวัด",nrm:"เส้นปกติผ่าน C",f4:"ผิวโค้ง: เส้นปกติ = เส้นจาก C ผ่านจุดตกกระทบ",dir:"ทิศแสง",ab:"อากาศ → ตัวกลาง",ba:"ตัวกลาง → อากาศ",blk:"สาร",mats:["แก้ว","อะคริลิก","น้ำ","เพชร"],unk:"ซ่อนชื่อสาร (A, B, C, D)",ang:"มุม",zoom:"ขยาย",
+  hint:"ลากกล่องแสงได้",
+  credit:["ผศ.ดร.รสสุมนต์ จารยะพันธุ์ · ไม่สงวนลิขสิทธิ์","มหาวิทยาลัยเทคโนโลยีราชมงคลตะวันออก อุเทนถวาย"],
+  pwTitle:"เข้าโหมดครู",pwPh:"รหัสผ่าน",enter:"เข้า",wrong:"รหัสผ่านไม่ถูกต้อง",
+  tpTitle:"แผงครู",ans:"แสดงคำตอบบนภาพ",nT:"ดัชนีหักเหของแต่ละสาร",
+  keyT:"เฉลย (สารและทิศแสงปัจจุบัน)",crit:"มุมวิกฤต",tir:"สะท้อนกลับหมด",
+  th1:"มุมตกกระทบ",th2:"มุมหักเห",thr:"มุมสะท้อน",
+  fT:"สูตร",f1:"การสะท้อน: มุมสะท้อน = มุมตกกระทบ",f2:"สเนลล์: n₁ sinθ₁ = n₂ sinθ₂ (อากาศ n = 1.00)",f3:"มุมวิกฤต: sinθc = 1/n",
+  link:"ลิงก์นักศึกษา",gen:"สร้างและคัดลอกลิงก์",copied:"คัดลอกแล้ว ✓ — ส่งลิงก์นี้ให้นักศึกษา",
+  chg:"เปลี่ยนรหัสผ่าน",email:"อีเมล",adm:"รหัสผ่านบัญชี",newpw:"รหัสผ่านใหม่",save:"บันทึก",
+  saved:"บันทึกแล้ว ✓ (เฉพาะเบราว์เซอร์นี้)",noauth:"อีเมลหรือรหัสผ่านบัญชีไม่ถูกต้อง",close:"ปิด"}
+};
+
+const DEF_PW="9;5:4*5‘";
+const ADMIN_EMAIL="rossumont@gmail.com", ADMIN_PW="LhaMoAPL9545=";
+const normPw=s=>String(s).replace(/[‘’'`´]/g,"'").trim();
+const getPw=()=>{try{return localStorage.getItem('snellLabPw')||DEF_PW}catch(e){return DEF_PW}};
+
+let cfg={n:[1.52,1.49,1.33,2.42],unk:false};
+try{const q=new URLSearchParams(location.search).get('cfg');
+ if(q){const o=JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g,'+').replace(/_/g,'/')))));
+  if(Array.isArray(o.n)&&(o.n.length===3||o.n.length===4)&&o.n.every(v=>+v>=1&&+v<=3))cfg.n=o.n.map(Number).concat(cfg.n.slice(o.n.length));cfg.unk=!!o.unk;}}catch(e){}
+const BLK=['A','B','C','D'], ZOOMS=[1,2,4];
+const S={part:1,mir:0,pos:0,lang:'en',dir:'ab',blk:0,th:0,zoom:1,px:0,py:0,ans:false,teacher:false};
+const tr=k=>T[S.lang][k]??k;
+const D2R=Math.PI/180;
+const nB=()=>cfg.n[S.blk];
+const mName=i=>(cfg.unk&&!S.teacher)?BLK[i]:T[S.lang].mats[i];
+const TINT=[['rgba(160,215,200,.38)','rgba(60,120,110,.9)'],['rgba(225,232,240,.42)','rgba(110,125,140,.9)'],['rgba(120,180,240,.38)','rgba(50,100,160,.9)'],['rgba(235,240,255,.55)','rgba(140,150,190,.95)']];
+
+// physics: returns {t2 (deg) or null if TIR, R reflectance}
+function solve(th){
+  const n1=S.dir==='ab'?1:nB(), n2=S.dir==='ab'?nB():1;
+  const ci=Math.cos(th*D2R), s2=n1/n2*Math.sin(th*D2R);
+  if(s2>=1)return{t2:null,R:1};
+  const ct=Math.sqrt(1-s2*s2);
+  const rs=((n1*ci-n2*ct)/(n1*ci+n2*ct))**2, rp=((n1*ct-n2*ci)/(n1*ct+n2*ci))**2;
+  return{t2:Math.asin(s2)/D2R,R:(rs+rp)/2};
+}
+
+// ---------- UI ----------
+const chips=document.getElementById('chips');
+function buildChips(){
+  chips.innerHTML='';
+  document.querySelector('.tag').textContent=tr(S.part===2?'view2':'view');
+  let row;
+  const lab=t=>{row=document.createElement('div');row.className='cgrp';chips.appendChild(row);
+    const g=document.createElement('span');g.className='glab';g.textContent=t;row.appendChild(g)};
+  const grp=(t,items,cur,fmt,set,amber)=>{lab(t);
+    items.forEach(v=>{const b=document.createElement('button');b.className='chip'+(v===cur?(amber?' selA':' sel'):'');
+      b.textContent=fmt(v);b.onclick=()=>{set(v);buildChips();draw()};row.appendChild(b)})};
+  grp(tr('part'),[1,2],S.part,k=>tr('p'+k),k=>S.part=k,true);
+  if(S.part===1){grp(tr('dir'),['ab','ba'],S.dir,k=>tr(k),k=>S.dir=k);
+  grp(tr('blk'),[0,1,2,3],S.blk,mName,i=>S.blk=i);}
+  else grp(tr('surf'),[0,1,2],S.mir,i=>T[S.lang].mirs[i],i=>S.mir=i);
+  lab(tr('ang'));
+  [-10,-1,1,10].forEach(dv=>{const b=document.createElement('button');b.className='chip step';b.textContent=(dv>0?'+':'−')+Math.abs(dv)+'°';
+    let tmr=null,rep=null;
+    const go=()=>{S.th=Math.max(0,Math.min(89,S.th+dv));draw()};
+    b.addEventListener('pointerdown',e=>{e.preventDefault();go();tmr=setTimeout(()=>rep=setInterval(go,90),420)});
+    ['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,()=>{clearTimeout(tmr);clearInterval(rep)}));
+    row.appendChild(b)});
+  if(S.part===2&&S.mir>0)grp(tr('pos'),POS,S.pos,v=>String(POS.indexOf(v)+1),v=>S.pos=v);
+  grp(tr('zoom'),ZOOMS,S.zoom,v=>v+'×',v=>{S.zoom=v;if(v===1){S.px=0;S.py=0}clampPan()},true);
+}
+function applyLang(){
+  document.documentElement.lang=S.lang;
+  document.querySelectorAll('[data-t]').forEach(e=>e.textContent=tr(e.dataset.t));
+  document.getElementById('langBtn').textContent=S.lang==='en'?'EN / ไทย':'ไทย / EN';
+  document.getElementById('credit').innerHTML=T[S.lang].credit.map(t=>'<div>'+t+'</div>').join('');
+  document.title=tr('title');buildChips();
+}
+document.getElementById('langBtn').onclick=()=>{S.lang=S.lang==='en'?'th':'en';applyLang();draw();if(document.getElementById('modal').classList.contains('show')&&S.teacher)teacherPanel()};
+
+// ---------- canvas ----------
+const cv=document.getElementById('cv'),wrap=document.getElementById('wrap');
+let DPR=1,W=0,H=0,SC=1,OX=0,OY=0;
+function fit(){const r=wrap.getBoundingClientRect();DPR=Math.min(window.devicePixelRatio||1,2);
+  W=cv.width=Math.max(10,Math.round(r.width*DPR));H=cv.height=Math.max(10,Math.round(r.height*DPR))}
+new ResizeObserver(()=>{fit();draw()}).observe(wrap);
+function clampPan(){const m=1.3*(1-1/S.zoom);S.px=Math.max(-m,Math.min(m,S.px));S.py=Math.max(-m,Math.min(m,S.py))}
+const X=x=>OX+(x-S.px)*SC, Y=y=>OY-(y-S.py)*SC; // world y up
+
+const RB=1, RP=1.13, RPAPER=1.32, RBOX=1.40;
+function ray(c,ang,r0,r1,alpha,w){ // ang: direction angle in world (rad from +x)
+  const x0=r0*Math.cos(ang),y0=r0*Math.sin(ang),x1=r1*Math.cos(ang),y1=r1*Math.sin(ang);
+  c.lineCap='round';
+  c.strokeStyle=`rgba(255,40,30,${alpha*.28})`;c.lineWidth=w*4;c.beginPath();c.moveTo(X(x0),Y(y0));c.lineTo(X(x1),Y(y1));c.stroke();
+  c.strokeStyle=`rgba(255,70,55,${alpha})`;c.lineWidth=w;c.beginPath();c.moveTo(X(x0),Y(y0));c.lineTo(X(x1),Y(y1));c.stroke();
+  c.strokeStyle=`rgba(255,215,200,${alpha*.8})`;c.lineWidth=Math.max(1,w*.35);c.beginPath();c.moveTo(X(x0),Y(y0));c.lineTo(X(x1),Y(y1));c.stroke();
+}
+function draw(){
+  if(!W)return;
+  const c=cv.getContext('2d'),d=DPR;
+  c.clearRect(0,0,W,H);
+  SC=Math.min(W,H)/2/(RBOX+.13)*S.zoom; OX=W/2; OY=H/2;
+  if(S.part===2){c.save();c.translate(X(0),Y(0));c.rotate(S.th*D2R);c.translate(-X(0),-Y(0))} // Part 2: the disc (with mirror) turns, light box stays put
+  // paper
+  c.fillStyle='#e9e4d6';c.beginPath();c.arc(X(0),Y(0),RPAPER*SC,0,2*Math.PI);c.fill();
+  c.strokeStyle='rgba(0,0,0,.25)';c.lineWidth=d;c.stroke();
+  // degree ring
+  c.strokeStyle='#2a2620';
+  for(let a=0;a<360;a++){
+    const t=a*D2R, len=a%10===0?.075:a%5===0?.05:.028;
+    c.lineWidth=(a%10===0?1.4:a%5===0?1.1:.8)*d*Math.min(2,Math.sqrt(S.zoom));
+    c.beginPath();c.moveTo(X(RP*Math.sin(t)),Y(RP*Math.cos(t)));c.lineTo(X((RP-len)*Math.sin(t)),Y((RP-len)*Math.cos(t)));c.stroke();
+  }
+  c.beginPath();c.arc(X(0),Y(0),RP*SC,0,2*Math.PI);c.lineWidth=d;c.stroke();
+  c.fillStyle='#2a2620';c.font=`bold ${Math.round(Math.max(10*d,SC*.058))}px ui-monospace,Menlo,monospace`;c.textAlign='center';c.textBaseline='middle';
+  for(let a=0;a<360;a+=10){const t=a*D2R,v=[a%180,180-a%180][a%180>90?1:0];const lbl=a%180<=90?a%180:180-a%180;
+    c.save();c.translate(X((RP+.09)*Math.sin(t)),Y((RP+.09)*Math.cos(t)));c.rotate(t);c.fillText(String(lbl),0,0);c.restore()}
+  // normal and surface lines
+  c.strokeStyle='rgba(42,38,32,.55)';c.lineWidth=d;c.setLineDash([6*d,5*d]);
+  c.beginPath();c.moveTo(X(0),Y(RP));c.lineTo(X(0),Y(-RP));c.stroke();c.setLineDash([]);
+  c.strokeStyle='rgba(42,38,32,.8)';c.beginPath();c.moveTo(X(-RP),Y(0));c.lineTo(X(RP),Y(0));c.stroke();
+  if(S.part===2){drawMetal(c,d);return}
+  // block (lower half)
+  c.fillStyle=TINT[S.blk][0];c.strokeStyle=TINT[S.blk][1];c.lineWidth=1.5*d;
+  c.beginPath();c.moveTo(X(-RB),Y(0));c.arc(X(0),Y(0),RB*SC,0,Math.PI);c.closePath();c.fill();c.stroke();
+  c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.moveTo(X(-RB*.95),Y(-.02));c.lineTo(X(RB*.95),Y(-.02));c.lineTo(X(RB*.95),Y(-.05));c.lineTo(X(-RB*.95),Y(-.05));c.fill();
+  c.fillStyle='rgba(40,70,90,.75)';c.font=`bold ${Math.round(Math.max(12,SC*.12))}px ui-monospace,Menlo,monospace`;
+  c.font=`bold ${Math.round(Math.max(11,SC*.08))}px system-ui,'Noto Sans Thai',sans-serif`;c.fillText(mName(S.blk),X(0),Y(-.55));
+  // rays
+  const th=S.th*D2R, sol=solve(S.th), up=S.dir==='ab';
+  // incoming direction: source on left side; ab: from top-left; ba: from bottom-left (enters curved surface radially)
+  const srcAng=up?Math.PI/2+th:-Math.PI/2-th;           // position angle of source
+  const reflAng=up?Math.PI/2-th:-Math.PI/2+th;          // reflected goes right, same half
+  const vis=r=>Math.min(1,.18+r*2.2);
+  ray(c,srcAng,0,RBOX-.1,1,2.6*d);
+  ray(c,reflAng,0,RPAPER+.02,sol.t2===null?1:vis(sol.R),2.2*d);
+  if(sol.t2!==null){const t2=sol.t2*D2R;const refrAng=up?-Math.PI/2+t2:Math.PI/2-t2;
+    ray(c,refrAng,0,RPAPER+.02,Math.max(.25,1-sol.R),2.6*d)}
+  // hit spot
+  c.fillStyle='rgba(255,230,220,.95)';c.beginPath();c.arc(X(0),Y(0),2.5*d,0,2*Math.PI);c.fill();
+  // light box
+  c.save();c.translate(X(RBOX*Math.cos(srcAng)),Y(RBOX*Math.sin(srcAng)));c.rotate(-srcAng);
+  const bw=.2*SC,bh=.11*SC;
+  c.fillStyle='#3a4658';c.strokeStyle='#8A97A8';c.lineWidth=d;c.fillRect(-bw/2,-bh/2,bw,bh);c.strokeRect(-bw/2,-bh/2,bw,bh);
+  c.fillStyle='#ff4636';c.fillRect(-bw/2-2*d,-bh*.18,3*d,bh*.36);c.restore();
+  // answers
+  if(S.ans&&S.teacher){
+    c.fillStyle='#E8B23A';c.font=`${12*d}px ui-monospace,Menlo,monospace`;c.textAlign='left';c.textBaseline='top';
+    const lines=[`n(${mName(S.blk)}) = ${nB().toFixed(2)}`,`${tr('th1')} = ${S.th.toFixed(1)}°`,`${tr('thr')} = ${S.th.toFixed(1)}°`,
+      `${tr('th2')} = `+(sol.t2===null?tr('tir'):sol.t2.toFixed(1)+'°'),`${tr('crit')} = ${(Math.asin(1/nB())/D2R).toFixed(1)}°`];
+    lines.forEach((l,i)=>c.fillText(l,10*d,26*d+i*16*d));
+  }
+}
+
+// ---------- Part 2: metal surface ----------
+const POS=[-30,-15,0,15,30];
+const MR=0.9, MA=0.75; // radius of curvature, half arc angle (rad)
+function mGeom(){const n=[0,1]; // normal at the hit point always on the 0° line
+  const sg=S.mir===1?1:-1, C=S.mir===0?null:[sg*MR*n[0],sg*MR*n[1]], u0=[-sg*n[0],-sg*n[1]];
+  const o=(S.mir===0?0:S.pos)*D2R*sg, uc=[u0[0]*Math.cos(o)-u0[1]*Math.sin(o),u0[0]*Math.sin(o)+u0[1]*Math.cos(o)]; // strip slid along its own arc
+  return{n,C,u0,uc,o}}
+function onArc(g,q){const v=[(q[0]-g.C[0])/MR,(q[1]-g.C[1])/MR];return Math.acos(Math.max(-1,Math.min(1,v[0]*g.uc[0]+v[1]*g.uc[1]))) <= MA+1e-9}
+function hitT(g,dir){if(!g.C)return Infinity;const t=2*(dir[0]*g.C[0]+dir[1]*g.C[1]);if(t<=1e-6)return Infinity;
+  return onArc(g,[t*dir[0],t*dir[1]])?t:Infinity}
+function mirrorPts(g){const P=[];
+  if(!g.C){for(let i=0;i<=1;i++){const s=(i?1:-1)*.85;P.push([[s,0],[0,-1]])}return P}
+  for(let i=0;i<=40;i++){const a=g.o-MA+2*MA*i/40,ca=Math.cos(a),sa=Math.sin(a);
+    const u=[g.u0[0]*ca-g.u0[1]*sa,g.u0[0]*sa+g.u0[1]*ca];const back=S.mir===1?u:[-u[0],-u[1]];
+    P.push([[g.C[0]+MR*u[0],g.C[1]+MR*u[1]],back])}return P}
+function rayXY(c,p0,p1,alpha,w){c.lineCap='round';
+  [[`rgba(255,40,30,${alpha*.28})`,w*4],[`rgba(255,70,55,${alpha})`,w],[`rgba(255,215,200,${alpha*.8})`,Math.max(1,w*.35)]].forEach(([s,lw])=>{
+    c.strokeStyle=s;c.lineWidth=lw;c.beginPath();c.moveTo(X(p0[0]),Y(p0[1]));c.lineTo(X(p1[0]),Y(p1[1]));c.stroke()})}
+function mirrorRefl(th){const g=mGeom(),s=[-Math.sin(th*D2R),Math.cos(th*D2R)],ci=s[0]*g.n[0]+s[1]*g.n[1];
+  const thn=Math.acos(Math.max(-1,Math.min(1,ci)))/D2R;return{thn,ok:thn<89.5&&hitT(g,s)>=RBOX-.1,rd:th}}
+const rdTxt=v=>{const a=Math.abs(v),sd=v>=0?'R':'L';return a<=90?a+'° '+sd:(180-a)+'° '+sd+'↓'};
+function drawMetal(c,d){
+  const g=mGeom(),P=mirrorPts(g),TH=.055;
+  // metal strip body
+  c.beginPath();P.forEach(([p],i)=>i?c.lineTo(X(p[0]),Y(p[1])):c.moveTo(X(p[0]),Y(p[1])));
+  for(let i=P.length-1;i>=0;i--){const[p,b]=P[i];c.lineTo(X(p[0]+b[0]*TH),Y(p[1]+b[1]*TH))}
+  c.closePath();c.fillStyle='#7d8894';c.fill();
+  c.strokeStyle='rgba(30,35,42,.55)';c.lineWidth=d;
+  c.beginPath();P.forEach(([p],i)=>i?c.lineTo(X(p[0]),Y(p[1])):c.moveTo(X(p[0]),Y(p[1])));c.strokeStyle='#eef2f6';c.lineWidth=2.4*d;c.stroke();
+  // hatch on back
+  c.strokeStyle='rgba(30,35,42,.6)';c.lineWidth=d;
+  const N=P.length>2?P.length:30;
+  for(let i=0;i<N;i+=2){let p,b;if(P.length>2){[p,b]=P[i]}else{const s=-.85+1.7*i/(N-1);p=[s,0];b=[0,-1]}
+    c.beginPath();c.moveTo(X(p[0]+b[0]*TH),Y(p[1]+b[1]*TH));c.lineTo(X(p[0]+b[0]*TH*2.3),Y(p[1]+b[1]*TH*2.3));c.stroke()}
+  // centre of curvature
+  if(g.C){c.strokeStyle='#2a2620';c.lineWidth=1.5*d;const k=.035;
+    c.beginPath();c.moveTo(X(g.C[0]-k),Y(g.C[1]));c.lineTo(X(g.C[0]+k),Y(g.C[1]));c.moveTo(X(g.C[0]),Y(g.C[1]-k));c.lineTo(X(g.C[0]),Y(g.C[1]+k));c.stroke();
+    c.fillStyle='#2a2620';c.font=`bold ${Math.round(Math.max(11*d,SC*.06))}px ui-monospace,Menlo,monospace`;c.textAlign='left';c.textBaseline='bottom';
+    c.fillText('C',X(g.C[0]+.03),Y(g.C[1]+.03))}
+  // rays
+  const th=S.th*D2R,srcAng=Math.PI/2+th,s=[Math.cos(srcAng),Math.sin(srcAng)];
+  const tIn=hitT(g,s), m=mirrorRefl(S.th);
+  if(!m.ok){ // blocked by the strip before reaching the centre
+    const tb=Math.min(tIn,RBOX-.1);rayXY(c,[s[0]*tb,s[1]*tb],[s[0]*(RBOX-.1),s[1]*(RBOX-.1)],1,2.6*d);
+  }else{
+    rayXY(c,[0,0],[s[0]*(RBOX-.1),s[1]*(RBOX-.1)],1,2.6*d);
+    const dd=[-s[0],-s[1]],dn=dd[0]*g.n[0]+dd[1]*g.n[1],r=[dd[0]-2*dn*g.n[0],dd[1]-2*dn*g.n[1]];
+    const t=Math.min(RPAPER+.02,hitT(g,r));rayXY(c,[0,0],[r[0]*t,r[1]*t],1,2.4*d);
+    c.fillStyle='rgba(255,230,220,.95)';c.beginPath();c.arc(X(0),Y(0),2.5*d,0,2*Math.PI);c.fill();
+  }
+  // light box
+  c.save();c.translate(X(RBOX*Math.cos(srcAng)),Y(RBOX*Math.sin(srcAng)));c.rotate(-srcAng);
+  const bw=.2*SC,bh=.11*SC;
+  c.fillStyle='#3a4658';c.strokeStyle='#8A97A8';c.lineWidth=d;c.fillRect(-bw/2,-bh/2,bw,bh);c.strokeRect(-bw/2,-bh/2,bw,bh);
+  c.fillStyle='#ff4636';c.fillRect(-bw/2-2*d,-bh*.18,3*d,bh*.36);c.restore();
+  c.restore();
+  if(S.ans&&S.teacher){
+    c.fillStyle='#E8B23A';c.font=`${12*d}px ui-monospace,Menlo,monospace`;c.textAlign='left';c.textBaseline='top';
+    const lines=[T[S.lang].mirs[S.mir],`${tr('thn')} = ${m.ok?m.thn.toFixed(1)+'°':'—'}`,`${tr('thr')} = ${m.ok?m.thn.toFixed(1)+'°':'—'}`];
+    lines.forEach((l,i)=>c.fillText(l,10*d,26*d+i*16*d));
+  }
+}
+
+// ---------- pointer: drag light box / pan ----------
+let drag=null;
+function toWorld(e){const r=cv.getBoundingClientRect();const sx=(e.clientX-r.left)*DPR,sy=(e.clientY-r.top)*DPR;
+  return[(sx-OX)/SC+S.px,-(sy-OY)/SC+S.py]}
+function setFrom(e){const[x,y]=toWorld(e);const up=S.part===2||S.dir==='ab';
+  let a=Math.atan2(Math.abs(x),up?y:-y)/D2R;if((up&&y<0)||(!up&&y>0))a=89;
+  S.th=Math.round(Math.max(0,Math.min(89,a)));draw()}
+wrap.addEventListener('pointerdown',e=>{wrap.setPointerCapture(e.pointerId);
+  const[x,y]=toWorld(e),r=Math.hypot(x,y);
+  if(S.zoom>1&&r<RBOX-.25){drag={mode:'pan',x:e.clientX,y:e.clientY,px:S.px,py:S.py}}
+  else if(S.part===2){drag={mode:'rot',a0:Math.atan2(x,y)/D2R,th0:S.th}}
+  else{drag={mode:'ang'};setFrom(e)}});
+wrap.addEventListener('pointermove',e=>{if(!drag)return;
+  if(drag.mode==='ang')setFrom(e);
+  else if(drag.mode==='rot'){const[x,y]=toWorld(e);let da=Math.atan2(x,y)/D2R-drag.a0;da=((da+540)%360)-180;
+    S.th=Math.round(Math.max(0,Math.min(89,drag.th0+da)));draw()}
+  else{S.px=drag.px-(e.clientX-drag.x)*DPR/SC;S.py=drag.py+(e.clientY-drag.y)*DPR/SC;clampPan();draw()}});
+['pointerup','pointercancel'].forEach(t=>wrap.addEventListener(t,()=>drag=null));
+
+// ---------- teacher ----------
+const modal=document.getElementById('modal'),card=document.getElementById('card');
+document.getElementById('teachBtn').onclick=()=>{S.teacher?teacherPanel():pwPrompt();modal.classList.add('show')};
+modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
+function pwPrompt(){
+  card.innerHTML=`<button class="obtn close" id="x">${tr('close')}</button><h2>${tr('pwTitle')}</h2>
+  <input type="password" id="pw" placeholder="${tr('pwPh')}" autocomplete="off"><div class="row"><button class="obtn" id="go">${tr('enter')}</button></div><div class="msg bad" id="pm"></div>`;
+  document.getElementById('x').onclick=()=>modal.classList.remove('show');
+  const go=()=>{if(normPw(document.getElementById('pw').value)===normPw(getPw())){S.teacher=true;document.getElementById('teachBtn').classList.add('on');buildChips();teacherPanel();draw()}
+    else document.getElementById('pm').textContent=tr('wrong')};
+  document.getElementById('go').onclick=go;
+  document.getElementById('pw').onkeydown=e=>{if(e.key==='Enter')go()};
+  setTimeout(()=>{const p=document.getElementById('pw');if(p)p.focus()},50);
+}
+function mKey(){let r='';for(let a=10;a<=80;a+=10){const m=mirrorRefl(a);
+    r+=`<tr><td>${a}°</td><td>${m.ok?m.thn.toFixed(0)+'°':'—'}</td><td>${m.ok?m.thn.toFixed(0)+'°':'—'}</td><td>${m.ok?rdTxt(m.rd):'—'}</td></tr>`}
+  const sp=S.mir>0?` · ${tr('pos')} ${POS.indexOf(S.pos)+1}`:'';
+  return `<h3>${tr('mkT')}</h3><div style="font-family:var(--mono);font-size:12px;color:var(--dim)">${T[S.lang].mirs[S.mir]}${sp}</div>
+  <table><tr><th>${tr('th1')}</th><th>${tr('thn')}</th><th>${tr('thr')}</th><th>${tr('rrd')}</th></tr>${r}</table>`}
+function teacherPanel(){
+  let rows='';for(let a=10;a<=80;a+=10){const s=solve(a);rows+=`<tr><td>${a}°</td><td>${a}°</td><td>${s.t2===null?tr('tir'):s.t2.toFixed(1)+'°'}</td></tr>`}
+  const crit=(Math.asin(1/nB())/D2R).toFixed(1);
+  card.innerHTML=`<button class="obtn close" id="x">${tr('close')}</button><h2>${tr('tpTitle')}</h2>
+  <div class="row"><label><input type="checkbox" id="ans" ${S.ans?'checked':''}> ${tr('ans')}</label></div>
+  <h3>${tr('nT')}</h3>
+  <div class="nrow">${BLK.map((b,i)=>`<label>${T[S.lang].mats[i]}${cfg.unk?' ('+b+')':''}<input type="number" class="nin" data-i="${i}" min="1" max="3" step="0.01" value="${cfg.n[i]}"></label>`).join('')}</div>
+  <div class="row"><label><input type="checkbox" id="unk" ${cfg.unk?'checked':''}> ${tr('unk')}</label></div>
+  ${S.part===1?`<h3>${tr('keyT')}</h3>
+  <div style="font-family:var(--mono);font-size:12px;color:var(--dim)">${tr(S.dir)} · ${mName(S.blk)} · n = ${nB().toFixed(2)} · ${tr('crit')} = ${crit}°</div>
+  <table><tr><th>${tr('th1')}</th><th>${tr('thr')}</th><th>${tr('th2')}</th></tr>${rows}</table>`:mKey()}
+  <h3>${tr('fT')}</h3>
+  <div class="note">${tr('f1')}<br>${tr('f2')}<br>${tr('f3')}<br>${tr('f4')}</div>
+  <h3>${tr('link')}</h3>
+  <div class="row"><button class="obtn" id="gen">${tr('gen')}</button></div>
+  <input type="text" id="lnk" readonly><div class="msg ok" id="lm"></div>
+  <h3>${tr('chg')}</h3>
+  <input type="email" id="em" placeholder="${tr('email')}"><input type="password" id="ap" placeholder="${tr('adm')}"><input type="password" id="np" placeholder="${tr('newpw')}">
+  <div class="row"><button class="obtn" id="sv">${tr('save')}</button></div><div class="msg" id="sm"></div>`;
+  document.getElementById('x').onclick=()=>modal.classList.remove('show');
+  document.getElementById('ans').onchange=e=>{S.ans=e.target.checked;draw()};
+  document.getElementById('unk').onchange=e=>{cfg.unk=e.target.checked;buildChips();draw();teacherPanel()};
+  document.querySelectorAll('.nin').forEach(inp=>inp.onchange=()=>{const v=+inp.value;if(v>=1&&v<=3){cfg.n[+inp.dataset.i]=v;draw();teacherPanel()}});
+  document.getElementById('gen').onclick=()=>{
+    const b=btoa(unescape(encodeURIComponent(JSON.stringify({n:cfg.n,unk:cfg.unk})))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const url=location.origin+location.pathname+'?cfg='+b;
+    const f=document.getElementById('lnk');f.value=url;f.select();
+    (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).catch(()=>{try{document.execCommand('copy')}catch(e){}})
+      .finally(()=>document.getElementById('lm').textContent=tr('copied'));
+  };
+  document.getElementById('sv').onclick=()=>{
+    const m=document.getElementById('sm');
+    if(document.getElementById('em').value.trim().toLowerCase()===ADMIN_EMAIL&&document.getElementById('ap').value===ADMIN_PW&&document.getElementById('np').value.trim()){
+      try{localStorage.setItem('snellLabPw',document.getElementById('np').value.trim())}catch(e){}
+      m.className='msg ok';m.textContent=tr('saved');
+    }else{m.className='msg bad';m.textContent=tr('noauth')}
+  };
+}
+
+let fsTried=false;
+document.addEventListener('pointerdown',()=>{if(fsTried)return;fsTried=true;
+  const el=document.documentElement;try{(el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el)}catch(e){}},{once:true});
+
+applyLang();fit();draw();
+</script>
+</body>
+</html>
